@@ -70,6 +70,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_BETTER_AUTH_URL=https://crosscode.site
             BETTER_AUTH_URL=https://crosscode.site
+            NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
       - name: Deploy web preview
         uses: appleboy/ssh-action@v1
