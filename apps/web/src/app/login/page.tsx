@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { authClient } from "@/lib/auth-client"
-import { TurnstileWidget } from "@/components/turnstile-widget"
+import { TurnstileWidget, type TurnstileStatus } from "@/components/turnstile-widget"
 import { GlyphMatrix } from "@/components/ui/glyph-matrix"
 import { BrandLogo } from "@/components/brand-logo"
 import { LoaderCircle } from "lucide-react"
@@ -20,6 +20,9 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [checkingSession, setCheckingSession] = useState(true)
   const [turnstileToken, setTurnstileToken] = useState("")
+  const [turnstileStatus, setTurnstileStatus] = useState<TurnstileStatus>("loading")
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
+  const turnstileRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const [cooldown, setCooldown] = useState(0)
 
   useEffect(() => {
@@ -43,6 +46,14 @@ export default function LoginPage() {
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault()
     if (cooldown > 0) return
+    if (turnstileRequired && !turnstileToken) {
+      setError(
+        turnstileStatus === "blocked"
+          ? "Bot check is blocked. Disable your ad-blocker or Brave Shields for this site, then reload."
+          : "Please complete the bot check and try again."
+      )
+      return
+    }
     setLoading(true)
     setError("")
 
@@ -55,7 +66,12 @@ export default function LoginPage() {
       })
 
       if (error) {
-        setError(error.message || "Failed to send OTP")
+        const msg = error.message || "Failed to send OTP"
+        setError(
+          /bot|captcha|turnstile/i.test(msg)
+            ? "Bot verification failed. Complete the captcha or disable your ad-blocker and retry."
+            : msg
+        )
       } else {
         setStep("otp")
         setCooldown(60)
@@ -63,6 +79,9 @@ export default function LoginPage() {
     } catch {
       setError("Failed to send OTP")
     } finally {
+      // Tokens are single-use: force a fresh challenge for the next attempt.
+      setTurnstileToken("")
+      setTurnstileResetKey((k) => k + 1)
       setLoading(false)
     }
   }
@@ -129,7 +148,7 @@ export default function LoginPage() {
                     />
                   </div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
-                  <TurnstileWidget onToken={setTurnstileToken} />
+                  <TurnstileWidget onToken={setTurnstileToken} onStatus={setTurnstileStatus} resetKey={turnstileResetKey} />
                   <Button type="submit" className="w-full" disabled={loading || cooldown > 0}>
                     {loading ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP"}
                   </Button>

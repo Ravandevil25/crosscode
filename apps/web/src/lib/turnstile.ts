@@ -1,7 +1,26 @@
 import { logger } from "./logger"
 
+export function turnstileSiteKey(): string | null {
+  const key = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  return key && key.length > 0 ? key : null
+}
+
 export function isTurnstileConfigured(): boolean {
   return Boolean(process.env.TURNSTILE_SECRET_KEY)
+}
+
+// Enforcement requires BOTH keys. NEXT_PUBLIC_* is baked at build time, so a
+// production image built without the site-key ARG would otherwise lock out all
+// logins with 403s. Fail open (rate limits still apply) and warn loudly.
+export function isTurnstileEnforced(): boolean {
+  const enforced = Boolean(process.env.TURNSTILE_SECRET_KEY && turnstileSiteKey())
+  if (process.env.TURNSTILE_SECRET_KEY && !turnstileSiteKey()) {
+    logger.warn(
+      "Turnstile",
+      "TURNSTILE_SECRET_KEY is set but NEXT_PUBLIC_TURNSTILE_SITE_KEY is missing - skipping verification (fail-open). Rebuild with the site-key build arg."
+    )
+  }
+  return enforced
 }
 
 export async function verifyTurnstileToken(token: string | null | undefined, remoteIp?: string): Promise<boolean> {
@@ -10,7 +29,10 @@ export async function verifyTurnstileToken(token: string | null | undefined, rem
     logger.warn("Turnstile", "TURNSTILE_SECRET_KEY not set - skipping verification (fail-open). Set it in production.")
     return true
   }
-  if (!token) return false
+  if (!token) {
+    logger.warn("Turnstile", "Verification failed: missing token (widget blocked, expired, or site key not baked into build)")
+    return false
+  }
   try {
     const ctrl = new AbortController()
     const timeout = setTimeout(() => ctrl.abort(), 5000)
@@ -21,7 +43,10 @@ export async function verifyTurnstileToken(token: string | null | undefined, rem
       signal: ctrl.signal,
     })
     clearTimeout(timeout)
-    const data = (await res.json()) as { success?: boolean }
+    const data = (await res.json()) as { success?: boolean; "error-codes"?: string[] }
+    if (data.success !== true) {
+      logger.warn("Turnstile", `Verification rejected: ${data["error-codes"]?.join(",") || "unknown"}`)
+    }
     return data.success === true
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
