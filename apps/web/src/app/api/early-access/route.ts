@@ -5,7 +5,7 @@ import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { logger } from "@/lib/logger"
 import { checkRateLimit, getClientIp, rateLimitedResponse } from "@/lib/rate-limit"
-import { turnstileTokenFromBody, verifyTurnstileToken } from "@/lib/turnstile"
+import { isTurnstileEnforced, turnstileTokenFromBody, verifyTurnstileToken } from "@/lib/turnstile"
 
 export async function POST(request: Request) {
   try {
@@ -13,8 +13,8 @@ export async function POST(request: Request) {
     if (!rl.success) return rateLimitedResponse(rl)
 
     const body = await request.json()
-    if (!(await verifyTurnstileToken(turnstileTokenFromBody(body), getClientIp(request)))) {
-      return NextResponse.json({ error: "Bot verification failed" }, { status: 403 })
+    if (isTurnstileEnforced() && !(await verifyTurnstileToken(turnstileTokenFromBody(body), getClientIp(request)))) {
+      return NextResponse.json({ error: "Bot verification failed. Complete the captcha or disable your ad-blocker and retry." }, { status: 403 })
     }
     const email = body?.email?.trim().toLowerCase()
 

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { toNextJsHandler } from "better-auth/next-js"
 import { checkRateLimit, getClientIp, rateLimitedResponse } from "@/lib/rate-limit"
-import { isTurnstileConfigured, verifyTurnstileToken } from "@/lib/turnstile"
+import { isTurnstileEnforced, verifyTurnstileToken } from "@/lib/turnstile"
+import { logger } from "@/lib/logger"
 
 const { GET: authGET, POST: authPOST } = toNextJsHandler(auth)
 
@@ -13,12 +14,16 @@ async function guardEmailAbuse(request: Request): Promise<NextResponse | null> {
   const rl = await checkRateLimit(request, "authEmail")
   if (!rl.success) return rateLimitedResponse(rl)
 
-  if (isTurnstileConfigured()) {
+  if (isTurnstileEnforced()) {
     const url = new URL(request.url)
     const needsCaptcha = request.method === "POST" && EMAIL_SENDING_PATHS.some((p) => url.pathname.endsWith(p))
     if (needsCaptcha) {
-      const ok = await verifyTurnstileToken(request.headers.get("x-turnstile-token"), getClientIp(request))
-      if (!ok) return NextResponse.json({ error: "Bot verification failed" }, { status: 403 })
+      const token = request.headers.get("x-turnstile-token")
+      const ok = await verifyTurnstileToken(token, getClientIp(request))
+      if (!ok) {
+        logger.warn("Auth", `Blocked email send without valid bot token: ${url.pathname} hasToken=${Boolean(token)} ip=${getClientIp(request)}`)
+        return NextResponse.json({ error: "Bot verification failed. Complete the captcha or disable your ad-blocker and retry." }, { status: 403 })
+      }
     }
   }
   return null
