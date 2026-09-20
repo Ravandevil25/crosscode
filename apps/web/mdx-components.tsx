@@ -4,32 +4,32 @@ import Link from "next/link";
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     h1: ({ children, ...props }) => (
-      <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground" {...props}>
+      <h1 className="mb-4 break-words text-3xl font-bold tracking-tight text-foreground sm:text-4xl" {...props}>
         {children}
       </h1>
     ),
     h2: ({ children, ...props }) => (
-      <h2 className="mt-8 mb-4 text-2xl font-semibold tracking-tight text-foreground" {...props}>
+      <h2 className="mt-8 mb-4 break-words text-xl font-semibold tracking-tight text-foreground sm:text-2xl" {...props}>
         {children}
       </h2>
     ),
     h3: ({ children, ...props }) => (
-      <h3 className="mt-6 mb-3 text-xl font-semibold text-foreground" {...props}>
+      <h3 className="mt-6 mb-3 break-words text-lg font-semibold text-foreground sm:text-xl" {...props}>
         {children}
       </h3>
     ),
     p: ({ children, ...props }) => (
-      <p className="mb-4 text-muted-foreground leading-7" {...props}>
+      <p className="mb-4 break-words text-muted-foreground leading-7" {...props}>
         {children}
       </p>
     ),
     ul: ({ children, ...props }) => (
-      <ul className="mb-4 ml-6 list-disc space-y-2 text-muted-foreground" {...props}>
+      <ul className="mb-4 ml-5 list-disc space-y-2 break-words text-muted-foreground sm:ml-6" {...props}>
         {children}
       </ul>
     ),
     ol: ({ children, ...props }) => (
-      <ol className="mb-4 ml-6 list-decimal space-y-2 text-muted-foreground" {...props}>
+      <ol className="mb-4 ml-5 list-decimal space-y-2 break-words text-muted-foreground sm:ml-6" {...props}>
         {children}
       </ol>
     ),
@@ -39,12 +39,12 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       </li>
     ),
     code: ({ children, ...props }) => (
-      <code className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono text-foreground" {...props}>
+      <code className="break-words rounded bg-muted px-1.5 py-0.5 text-sm font-mono text-foreground" {...props}>
         {children}
       </code>
     ),
     pre: ({ children, ...props }) => (
-      <pre className="mb-4 overflow-x-auto rounded-lg border bg-muted p-4" {...props}>
+      <pre className="mb-4 max-w-full overflow-x-auto rounded-lg border bg-muted p-4 text-sm" {...props}>
         {children}
       </pre>
     ),
@@ -69,8 +69,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       );
     },
     table: ({ children, ...props }) => (
-      <div className="mb-4 overflow-x-auto">
-        <table className="w-full border-collapse border text-sm" {...props}>
+      <div className="mb-4 max-w-full overflow-x-auto">
+        <table className="w-full min-w-[480px] border-collapse border text-sm" {...props}>
           {children}
         </table>
       </div>

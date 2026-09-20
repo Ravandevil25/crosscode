@@ -27,37 +27,46 @@ const navItems = [
   },
 ];
 
-export function DocsSidebar() {
+export const docsNavItems = navItems;
+
+export function DocsSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-16 h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto border-r py-6 pr-4 pl-4">
-      <nav className="space-y-6">
-        {navItems.map((section) => (
-          <div key={section.title}>
-            <h3 className="mb-2 text-sm font-semibold text-foreground">
-              {section.title}
-            </h3>
-            <ul className="space-y-1">
-              {section.items.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "block rounded-md px-3 py-1.5 text-sm transition-colors",
-                      pathname === item.href
-                        ? "bg-accent text-accent-foreground font-medium"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                    )}
-                  >
-                    {item.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </nav>
+    <nav className="space-y-6">
+      {navItems.map((section) => (
+        <div key={section.title}>
+          <h3 className="mb-2 text-sm font-semibold text-foreground">
+            {section.title}
+          </h3>
+          <ul className="space-y-1">
+            {section.items.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={cn(
+                    "block rounded-md px-3 py-1.5 text-sm transition-colors",
+                    pathname === item.href
+                      ? "bg-accent text-accent-foreground font-medium"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  )}
+                >
+                  {item.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+export function DocsSidebar() {
+  return (
+    <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto border-r py-6 pr-4 pl-4 lg:block">
+      <DocsSidebarContent />
     </aside>
   );
 }
