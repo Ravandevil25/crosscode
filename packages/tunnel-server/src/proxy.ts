@@ -15,17 +15,26 @@ import { createQuestionPushObserver, createSsePushObserver } from "./push-events
 
 const RATE_LIMIT_WINDOW = 60_000
 const MAX_REQUESTS_PER_WINDOW = 120
+const MAX_RATE_LIMIT_KEYS = 10_000
 const rateLimits = new Map<string, { count: number; resetAt: number }>()
 
-function checkRateLimit(projectId: string): boolean {
+function checkRateLimit(key: string): { allowed: boolean; retryAfter: number } {
   const now = Date.now()
-  let limit = rateLimits.get(projectId)
+  let limit = rateLimits.get(key)
   if (!limit || now > limit.resetAt) {
+    if (rateLimits.size >= MAX_RATE_LIMIT_KEYS) {
+      for (const [k, v] of rateLimits) {
+        if (v.resetAt <= now) rateLimits.delete(k)
+      }
+    }
     limit = { count: 0, resetAt: now + RATE_LIMIT_WINDOW }
-    rateLimits.set(projectId, limit)
+    rateLimits.set(key, limit)
   }
   limit.count++
-  return limit.count <= MAX_REQUESTS_PER_WINDOW
+  return {
+    allowed: limit.count <= MAX_REQUESTS_PER_WINDOW,
+    retryAfter: Math.max(1, Math.ceil((limit.resetAt - now) / 1000)),
+  }
 }
 
 export function handleProxy(req: IncomingMessage, res: ServerResponse): void {
@@ -63,9 +72,11 @@ export function handleProxy(req: IncomingMessage, res: ServerResponse): void {
     return
   }
 
-  if (!checkRateLimit(projectId)) {
+  const clientIp = req.socket.remoteAddress || "unknown"
+  const limit = checkRateLimit(`${projectId}:${clientIp}`)
+  if (!limit.allowed) {
     logger.warn("Rate limit exceeded for tunnel", { projectId, path, method })
-    res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60" })
+    res.writeHead(429, { "Content-Type": "application/json", "Retry-After": String(limit.retryAfter) })
     res.end(JSON.stringify({ error: "Too many requests. Please try again later." }))
     return
   }

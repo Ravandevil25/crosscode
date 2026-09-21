@@ -77,7 +77,12 @@ export const useConnections = create<ConnectionStore>()(
         }),
         {
             name: "crosscode-connections",
-            storage: createJSONStorage(() => secureStorage)
+            storage: createJSONStorage(() => secureStorage),
+            partialize: (state) => ({
+                connections: state.connections.map(({ healthy, ...rest }) => rest),
+                current: state.current,
+                activeConnections: state.activeConnections,
+            }),
         }
     )
 )
