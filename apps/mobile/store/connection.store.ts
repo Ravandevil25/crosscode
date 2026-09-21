@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
+import { secureStorage } from "../lib/secure-storage"
 
 let nextID = 1
 
@@ -77,7 +77,7 @@ export const useConnections = create<ConnectionStore>()(
         }),
         {
             name: "crosscode-connections",
-            storage: createJSONStorage(() => AsyncStorage)
+            storage: createJSONStorage(() => secureStorage)
         }
     )
 )
